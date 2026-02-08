@@ -1,5 +1,5 @@
 
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeAll, afterAll } from '@jest/globals';
 
 // Mocks must be declared before imports
 const mockAdd = jest.fn();
@@ -16,7 +16,7 @@ const mockWorker = jest.fn(() => mockWorkerInstance);
 // Mock Redis
 const mockRedis = jest.fn(() => ({
   ping: jest.fn().mockResolvedValue('PONG'),
-}));
+})) as any;
 
 // Mock OrchestratorService
 const mockExecuteWorkflow = jest.fn();
@@ -41,7 +41,7 @@ jest.unstable_mockModule('../src/services/orchestrator.service.js', () => ({
 const { enqueueWorkflowJob } = await import('../src/services/queue.service.js');
 
 describe('Async Engine', () => {
-  beforeEach(() => {
+  beforeAll(() => {
     jest.clearAllMocks();
   });
 
@@ -78,7 +78,7 @@ describe('Async Engine', () => {
         // call args: [queueName, processor, options]
         const calls = (mockWorker as unknown as jest.Mock).mock.calls;
         // Assuming the last call is our worker
-        processor = calls[calls.length - 1][1];
+        processor = calls[calls.length - 1][1] as Function;
     });
 
     it('should process a job successfully', async () => {
@@ -86,6 +86,7 @@ describe('Async Engine', () => {
         id: 'job-1',
         data: { workflowId: 456 },
         updateProgress: jest.fn(),
+        returnvalue: null
       };
 
       await processor(mockJob);
@@ -96,12 +97,14 @@ describe('Async Engine', () => {
     });
 
     it('should throw error if orchestration fails', async () => {
-      mockExecuteWorkflow.mockRejectedValueOnce(new Error('Orchestration failed'));
+      mockExecuteWorkflow.mockRejectedValueOnce(new Error('Orchestration failed') as any);
       
       const mockJob = {
         id: 'job-2',
         data: { workflowId: 789 },
         updateProgress: jest.fn(),
+        opts: { attempts: 3 },
+        attemptsMade: 1
       };
 
       await expect(processor(mockJob)).rejects.toThrow('Orchestration failed');
