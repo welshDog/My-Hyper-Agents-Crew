@@ -99,10 +99,9 @@ server.post('/workflows', {
   // Create workflow
   const workflowId = await orchestratorService.createWorkflow(body.prompt);
     
-  // Trigger async execution (Fire and forget)
-  orchestratorService.executeWorkflow(workflowId).catch(err => {
-      request.log.error(err, 'Async workflow execution failed');
-  });
+  // Enqueue job to BullMQ
+  const jobId = await orchestratorService.enqueueWorkflow(workflowId);
+  request.log.info({ workflowId, jobId }, 'Workflow enqueued');
 
   reply.code(201).send({
     workflowId,

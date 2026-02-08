@@ -6,12 +6,22 @@ import { callLLM } from '../agents/utils.js';
 import { db } from '../db/index.js';
 import { workflows, tasks } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { enqueueWorkflowJob } from './queue.service.js';
 
 /**
  * Service class for orchestrating Broski agents.
  * Handles the lifecycle of a workflow: planning, execution, and integration.
  */
 export class BroskiOrchestratorService {
+  /**
+   * Enqueues a workflow for async execution.
+   * @param workflowId - The ID of the workflow to enqueue.
+   * @returns The job ID.
+   */
+  async enqueueWorkflow(workflowId: number): Promise<string> {
+    return enqueueWorkflowJob(workflowId);
+  }
+
   /**
    * Creates a new workflow in the database.
    * @param userRequest - The user's prompt.
