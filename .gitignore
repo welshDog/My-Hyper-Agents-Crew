@@ -1,0 +1,9 @@
+node_modules/
+**/node_modules/
+Logs/
+**/Logs/
+*.log
+HyperWOW/CompanionNode/HyperCompanion.config.json
+HyperTutorialProject/hyper.db
+coverage/
+HyperTutorialProject/coverage/
