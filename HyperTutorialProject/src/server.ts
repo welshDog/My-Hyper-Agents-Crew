@@ -10,6 +10,8 @@ import { connection as redisConnection } from './services/queue.service.js';
 import { fileURLToPath } from 'url';
 import { register, initMetrics } from './services/metrics.service.js';
 import { startDemoRun, getDemoMetrics } from './demo.js';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
 
 const DemoRunResponseSchema = z.object({ status: z.string() });
 const DemoRunConflictSchema = z.object({ error: z.string() });
@@ -80,10 +82,17 @@ export const buildServer = async () => {
     routePrefix: '/docs',
   });
 
+  // Register Static Files
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../public'),
+    prefix: '/', // optional: default '/'
+  });
+
   const orchestratorService = new BroskiOrchestratorService();
 
-  // Root route
-  server.get('/', async () => ({ hello: 'world', system: 'HyperTutorialProject API' }));
+  // Root API route
+  server.get('/api', async () => ({ hello: 'world', system: 'HyperTutorialProject API' }));
 
   // Health check
   server.get('/health', async () => {

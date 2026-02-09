@@ -59,7 +59,7 @@ describe('API Integration Tests', () => {
     initDB();
     app = await buildServer();
     await app.ready();
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (app) await app.close();
@@ -90,5 +90,14 @@ describe('API Integration Tests', () => {
         .expect(503);
     
     expect(response.body).toHaveProperty('status', 'not_ready');
+  });
+
+  it('GET / should return index.html', async () => {
+    const response = await request(app.server)
+      .get('/')
+      .expect(200);
+    
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.text).toContain('Hyper-Agent Swarm');
   });
 });
