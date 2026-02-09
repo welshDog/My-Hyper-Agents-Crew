@@ -2,10 +2,11 @@ import Fastify from 'fastify';
 import { db, initDB } from './db/index.js';
 import { agents } from './db/schema.js';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { BroskiOrchestratorService } from './services/orchestrator.service.js';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 import { connection as redisConnection } from './services/queue.service.js';
 import { fileURLToPath } from 'url';
 import { register, initMetrics } from './services/metrics.service.js';
@@ -60,10 +61,6 @@ export const buildServer = async () => {
       },
     },
   });
-
-  // Setup Zod Validator
-  server.setValidatorCompiler(validatorCompiler);
-  server.setSerializerCompiler(serializerCompiler);
 
   // Register Swagger
   await server.register(fastifySwagger, {
@@ -129,14 +126,7 @@ export const buildServer = async () => {
   });
 
   // Demo: start comprehensive Hyper Agents showcase run
-  server.post('/demo/run', {
-    schema: {
-      response: {
-        202: DemoRunResponseSchema,
-        409: DemoRunConflictSchema,
-      },
-    },
-  }, async (request, reply) => {
+  server.post('/demo/run', async (request, reply) => {
     const res = await startDemoRun();
     if ('ok' in res && res.ok) {
       reply.header('Location', `/demo/metrics`);
@@ -147,24 +137,15 @@ export const buildServer = async () => {
   });
 
   // Demo: metrics snapshot
-  server.get('/demo/metrics', {
-    schema: {
-      response: {
-        200: DemoMetricsResponseSchema,
-      },
-    },
-  }, async () => getDemoMetrics());
+  server.get('/demo/metrics', async () => getDemoMetrics());
 
   // Create Workflow Endpoint
-  server.post('/workflows', {
-      schema: {
-          body: WorkflowSchema,
-          response: {
-              202: WorkflowResponseSchema
-          }
-      }
-  }, async (request, reply) => {
-    const body = request.body as z.infer<typeof WorkflowSchema>; // Explicitly typed because we use the zod provider
+  server.post('/workflows', async (request, reply) => {
+    const parseResult = WorkflowSchema.safeParse(request.body);
+    if (!parseResult.success) {
+        return reply.code(400).send({ error: "Invalid Input", details: parseResult.error });
+    }
+    const body = parseResult.data;
       
     // Create workflow
     const workflowId = await orchestratorService.createWorkflow(body.prompt);
@@ -192,11 +173,11 @@ export const buildServer = async () => {
   // Get Workflow Status Endpoint
   server.get('/workflows/:id', {
       schema: {
-          params: z.object({ id: z.string() }),
+          params: zodToJsonSchema(z.object({ id: z.string() })),
           response: {
-              200: WorkflowStatusSchema,
-              404: z.object({ error: z.string() }),
-              400: z.object({ error: z.string() })
+              200: zodToJsonSchema(WorkflowStatusSchema),
+              404: zodToJsonSchema(z.object({ error: z.string() })),
+              400: zodToJsonSchema(z.object({ error: z.string() }))
           }
       }
   }, async (request, reply) => {
