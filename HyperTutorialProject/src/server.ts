@@ -11,6 +11,17 @@ import { fileURLToPath } from 'url';
 import { register, initMetrics } from './services/metrics.service.js';
 import { startDemoRun, getDemoMetrics } from './demo.js';
 
+const DemoRunResponseSchema = z.object({ status: z.string() });
+const DemoRunConflictSchema = z.object({ error: z.string() });
+const MetricPointSchema = z.object({ t: z.number(), fps: z.number().optional(), memMB: z.number().optional(), latencyMs: z.number().optional() });
+const DemoMetricsResponseSchema = z.object({
+  running: z.boolean(),
+  startedAt: z.number().optional(),
+  finishedAt: z.number().optional(),
+  summary: z.object({ durationMs: z.number(), tasksCompleted: z.number(), avgLatencyMs: z.number() }).optional(),
+  metrics: z.array(MetricPointSchema)
+});
+
 // Validation Schema for POST /workflows
 const WorkflowSchema = z.object({
   userId: z.string().uuid(),
@@ -109,7 +120,14 @@ export const buildServer = async () => {
   });
 
   // Demo: start comprehensive Hyper Agents showcase run
-  server.post('/demo/run', async (request, reply) => {
+  server.post('/demo/run', {
+    schema: {
+      response: {
+        202: DemoRunResponseSchema,
+        409: DemoRunConflictSchema,
+      },
+    },
+  }, async (request, reply) => {
     const res = await startDemoRun();
     if ('ok' in res && res.ok) {
       reply.header('Location', `/demo/metrics`);
@@ -120,7 +138,13 @@ export const buildServer = async () => {
   });
 
   // Demo: metrics snapshot
-  server.get('/demo/metrics', async () => getDemoMetrics());
+  server.get('/demo/metrics', {
+    schema: {
+      response: {
+        200: DemoMetricsResponseSchema,
+      },
+    },
+  }, async () => getDemoMetrics());
 
   // Create Workflow Endpoint
   server.post('/workflows', {
