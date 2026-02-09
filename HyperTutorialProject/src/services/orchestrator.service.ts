@@ -90,15 +90,17 @@ export class BroskiOrchestratorService {
           case 'researcher':
             output = await runResearcher(state, task);
             break;
-          case 'designer':
+          case 'designer': {
             const research = state.specialist_outputs.researcher || 'No research';
             output = await runDesigner(state, task, research);
             break;
-          case 'coder':
+          }
+          case 'coder': {
             const design = state.specialist_outputs.designer || 'No design';
             const integrated = state.integrated_solution || 'No integration';
             output = await runCoder(state, task, design, integrated);
             break;
+          }
           default:
             output = `Agent ${task.agent} not implemented yet.`;
         }

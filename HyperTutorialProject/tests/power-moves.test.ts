@@ -10,6 +10,7 @@ jest.unstable_mockModule('inquirer', () => ({
 
 jest.unstable_mockModule('../src/config.js', () => ({
   loadConfig: jest.fn().mockReturnValue({ env: 'test' }),
+  config: { env: 'test' },
 }));
 
 // Mock console

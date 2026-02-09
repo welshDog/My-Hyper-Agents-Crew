@@ -1,5 +1,5 @@
 
-import { Worker, Job, Queue } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { BroskiOrchestratorService } from '../services/orchestrator.service.js';
 import pino from 'pino';

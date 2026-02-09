@@ -1,5 +1,5 @@
 
-import { describe, it, expect, jest, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, jest, beforeAll } from '@jest/globals';
 
 // Mocks must be declared before imports
 const mockAdd = jest.fn();
@@ -14,9 +14,11 @@ const mockWorkerInstance = {
 const mockWorker = jest.fn(() => mockWorkerInstance);
 
 // Mock Redis
-const mockRedis = jest.fn(() => ({
-  ping: jest.fn().mockResolvedValue('PONG'),
-})) as any;
+const mockRedis = jest.fn(() => {
+  const ping = (jest.fn() as any);
+  ping.mockResolvedValue('PONG');
+  return { ping };
+}) as any;
 
 // Mock OrchestratorService
 const mockExecuteWorkflow = jest.fn();
@@ -65,20 +67,19 @@ describe('Async Engine', () => {
   });
 
   describe('Workflow Worker (Consumer)', () => {
-    let workflowWorkerModule: any;
-    let processor: Function;
+    let processor: (job: any) => Promise<void>;
 
     beforeAll(async () => {
         // Re-import to trigger worker creation if needed, 
         // but since it's a side-effect at top level, it runs once.
         // We can inspect the mockWorker calls.
-        workflowWorkerModule = await import('../src/workers/workflowWorker.js');
+        await import('../src/workers/workflowWorker.js');
         
         // Get the processor function passed to the Worker constructor
         // call args: [queueName, processor, options]
         const calls = (mockWorker as unknown as jest.Mock).mock.calls;
         // Assuming the last call is our worker
-        processor = calls[calls.length - 1][1] as Function;
+        processor = calls[calls.length - 1][1] as (job: any) => Promise<void>;
     });
 
     it('should process a job successfully', async () => {
@@ -97,7 +98,7 @@ describe('Async Engine', () => {
     });
 
     it('should throw error if orchestration fails', async () => {
-      mockExecuteWorkflow.mockRejectedValueOnce(new Error('Orchestration failed') as any);
+      (mockExecuteWorkflow as any).mockRejectedValueOnce(new Error('Orchestration failed') as any);
       
       const mockJob = {
         id: 'job-2',

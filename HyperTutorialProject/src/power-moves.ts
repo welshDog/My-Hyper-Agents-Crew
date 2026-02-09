@@ -6,7 +6,6 @@ import gradient from 'gradient-string';
 import { loadConfig } from './config.js';
 import { runHyperHealthScan, printHealthReport } from './hyper-health.js';
 import { runBroski } from './agents/orchestrator.js';
-import { createRequire } from 'module';
 
 
 // Load project config to ensure we're aligned

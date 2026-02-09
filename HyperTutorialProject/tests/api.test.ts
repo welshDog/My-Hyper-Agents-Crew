@@ -3,7 +3,7 @@ import { describe, it, expect, jest, beforeAll, afterAll } from '@jest/globals';
 
 // Mock Redis
 const mockRedisInstance = {
-    ping: jest.fn(),
+    ping: (jest.fn() as any),
     quit: jest.fn(),
     on: jest.fn(),
     status: 'ready',
@@ -17,7 +17,7 @@ const mockRedisConstructor = jest.fn(() => mockRedisInstance);
 
 // Mock BullMQ
 const mockQueueInstance = {
-    add: jest.fn().mockResolvedValue({ id: 'job-123' } as any),
+    add: (jest.fn() as any).mockResolvedValue({ id: 'job-123' } as any),
     close: jest.fn(),
     on: jest.fn(),
 } as any;
@@ -32,6 +32,9 @@ jest.unstable_mockModule('ioredis', () => ({
 
 jest.unstable_mockModule('bullmq', () => ({
     Queue: mockQueueConstructor,
+    QueueEvents: jest.fn().mockImplementation(() => ({
+        on: jest.fn(),
+    })),
 }));
 
 describe('API Integration Tests', () => {

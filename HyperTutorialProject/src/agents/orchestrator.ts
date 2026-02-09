@@ -37,15 +37,17 @@ export class BroskiOrchestrator {
         case 'researcher':
           output = await runResearcher(this.state, task);
           break;
-        case 'designer':
+        case 'designer': {
           const research = this.state.specialist_outputs.researcher || 'No research';
           output = await runDesigner(this.state, task, research);
           break;
-        case 'coder':
+        }
+        case 'coder': {
           const design = this.state.specialist_outputs.designer || 'No design';
           const integrated = this.state.integrated_solution || 'No integration';
           output = await runCoder(this.state, task, design, integrated);
           break;
+        }
         // Add other agents here
         default:
           output = `Agent ${task.agent} not implemented yet.`;

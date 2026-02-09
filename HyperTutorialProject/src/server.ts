@@ -1,8 +1,6 @@
 import Fastify from 'fastify';
-import pino from 'pino';
 import { db, initDB } from './db/index.js';
-import { agents, workflows } from './db/schema.js';
-import { eq } from 'drizzle-orm';
+import { agents } from './db/schema.js';
 import { z } from 'zod';
 import { BroskiOrchestratorService } from './services/orchestrator.service.js';
 import fastifySwagger from '@fastify/swagger';
@@ -11,6 +9,7 @@ import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fast
 import { connection as redisConnection } from './services/queue.service.js';
 import { fileURLToPath } from 'url';
 import { register, initMetrics } from './services/metrics.service.js';
+import { startDemoRun, getDemoMetrics } from './demo.js';
 
 // Validation Schema for POST /workflows
 const WorkflowSchema = z.object({
@@ -73,12 +72,10 @@ export const buildServer = async () => {
   const orchestratorService = new BroskiOrchestratorService();
 
   // Root route
-  server.get('/', async (request, reply) => {
-    return { hello: 'world', system: 'HyperTutorialProject API' };
-  });
+  server.get('/', async () => ({ hello: 'world', system: 'HyperTutorialProject API' }));
 
   // Health check
-  server.get('/health', async (request, reply) => {
+  server.get('/health', async () => {
     return { status: 'ok', uptime: process.uptime() };
   });
 
@@ -100,7 +97,7 @@ export const buildServer = async () => {
   });
 
   // Agents endpoint (Test DB connection)
-  server.get('/agents', async (request, reply) => {
+  server.get('/agents', async () => {
     const result = await db.select().from(agents).all();
     return { agents: result };
   });
@@ -110,6 +107,20 @@ export const buildServer = async () => {
     reply.header('Content-Type', register.contentType);
     return register.metrics();
   });
+
+  // Demo: start comprehensive Hyper Agents showcase run
+  server.post('/demo/run', async (request, reply) => {
+    const res = await startDemoRun();
+    if ('ok' in res && res.ok) {
+      reply.header('Location', `/demo/metrics`);
+      reply.code(202).send({ status: 'running' });
+    } else {
+      reply.code(409).send({ error: res.reason });
+    }
+  });
+
+  // Demo: metrics snapshot
+  server.get('/demo/metrics', async () => getDemoMetrics());
 
   // Create Workflow Endpoint
   server.post('/workflows', {
